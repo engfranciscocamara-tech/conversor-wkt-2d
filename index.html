@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor WKT 3D para 2D</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f5f5f7;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --text-color: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent-color: #0071e3;
+            --accent-hover: #0077ed;
+            --success-color: #34c759;
+            --error-color: #ff3b30;
+            --border-color: #d2d2d7;
+            --radius: 16px;
+            --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--radius);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            box-sizing: border-box;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: -0.5px;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            font-size: 15px;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 48px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #fff;
+            margin-bottom: 24px;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent-color);
+            background-color: rgba(0, 113, 227, 0.03);
+        }
+
+        .drop-zone p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        .drop-zone input[type="file"] {
+            display: none;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .divider::before { margin-right: 12px; }
+        .divider::after { margin-left: 12px; }
+
+        .csv-input {
+            width: 100%;
+            height: 120px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            resize: vertical;
+            box-sizing: border-box;
+            margin-bottom: 16px;
+            transition: border-color 0.2s ease;
+        }
+
+        .csv-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+        }
+
+        .controls {
+            display: none;
+            background-color: #fbfbfd;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .controls.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        select {
+            appearance: none;
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 40px 12px 16px;
+            font-size: 15px;
+            color: var(--text-color);
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg width='12' height='7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2386868b' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            transition: all 0.2s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background-color: #e5e5ea;
+            color: var(--text-color);
+            margin-bottom: 24px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d1d6;
+        }
+
+        .status {
+            margin-bottom: 24px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+            text-align: center;
+        }
+
+        .status.success {
+            display: block;
+            background-color: #e8f8f0;
+            color: #248a3d;
+            border: 1px solid #cceadd;
+        }
+
+        .status.error {
+            display: block;
+            background-color: #ffebe9;
+            color: #c93429;
+            border: 1px solid #ffd1cd;
+        }
+
+        .status.info {
+            display: block;
+            background-color: #eaf2fc;
+            color: #005bb5;
+            border: 1px solid #c9def7;
+        }
+
+        .preview-container {
+            display: none;
+            margin-top: 32px;
+        }
+
+        .preview-container.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .preview-container h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid var(--border-color);
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #fbfbfd;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 400px;
+            font-family: ui-monospace, SFMono-Regular, monospace;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Conversor WKT 3D para 2D</h1>
+    <p class="subtitle">Remova a dimensão Z de geometrias em formato Well-Known Text (WKT)</p>
+    
+    <div id="status" class="status"></div>
+
+    <div class="drop-zone" id="drop-zone">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-color); margin-bottom: 16px;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <p>Arraste e solte seu arquivo <b>.xlsx</b> ou <b>.csv</b> aqui</p>
+        <p style="font-size: 14px; margin-top: 8px;">ou <span style="color: var(--accent-color); font-weight: 500;">clique para selecionar</span></p>
+        <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+    </div>
+
+    <div class="divider">ou</div>
+
+    <div>
+        <textarea class="csv-input" id="csv-input" placeholder="Cole os dados em formato CSV (separador vírgula ou ponto e vírgula)..."></textarea>
+        <button id="btn-load-csv" class="btn-secondary">Analisar Dados Colados</button>
+    </div>
+
+    <div class="controls" id="controls">
+        <div class="form-group">
+            <label for="column-select">Selecione a coluna de geometria (WKT)</label>
+            <select id="column-select"></select>
+        </div>
+        <button id="btn-process">Converter e Baixar .xlsx</button>
+    </div>
+
+    <div class="preview-container" id="preview-container">
+        <h3>Pré-visualização (5 primeiras linhas)</h3>
+        <div style="overflow-x: auto;">
+            <table id="preview-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">Linha</th>
+                        <th>Geometria 2D (Convertida)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- As linhas serão inseridas aqui dinamicamente -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const csvInput = document.getElementById('csv-input');
+    const btnLoadCsv = document.getElementById('btn-load-csv');
+    const btnProcess = document.getElementById('btn-process');
+    const statusEl = document.getElementById('status');
+    const controls = document.getElementById('controls');
+    const previewContainer = document.getElementById('preview-container');
+    const previewTableBody = document.querySelector('#preview-table tbody');
+    const columnSelect = document.getElementById('column-select');
+
+    let currentData = [];
+    let headers = [];
+
+    // --- Drag and Drop Events ---
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            handleFile(e.target.files[0]);
+        }
+    });
+
+    // --- CSV Text Load ---
+    btnLoadCsv.addEventListener('click', () => {
+        handleCSV(csvInput.value);
+    });
+
+    // --- Process Action ---
+    btnProcess.addEventListener('click', processAndDownload);
+
+    // --- Logic Functions ---
+    function showStatus(msg, type) {
+        statusEl.className = 'status ' + type;
+        statusEl.textContent = msg;
+    }
+
+    function handleFile(file) {
+        showStatus('Lendo arquivo...', 'info');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Converter aba para matriz de arrays
+                currentData = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ""});
+                
+                setupData();
+            } catch(err) {
+                showStatus('Erro ao ler arquivo: certifique-se de que é um formato suportado (.xlsx, .csv). ' + err.message, 'error');
+            }
+        };
+        reader.onerror = () => showStatus('Erro ao ler o arquivo.', 'error');
+        reader.readAsArrayBuffer(file);
+    }
+
+    function handleCSV(text) {
+        if (!text.trim()) {
+            showStatus('O campo de texto está vazio.', 'error');
+            return;
+        }
+        showStatus('Analisando CSV...', 'info');
+        try {
+            currentData = parseCSVToArray(text);
+            setupData();
+        } catch(err) {
+            showStatus('Erro ao processar texto CSV: ' + err.message, 'error');
+        }
+    }
+
+    // Parser manual de CSV com detecção automática de delimitador (, ou ;)
+    function parseCSVToArray(text) {
+        let delimiter = ',';
+        const lines = text.split(/\r?\n/);
+        const firstLine = lines[0] || '';
+        
+        function countDelimiter(str, delim) {
+            let count = 0;
+            let inQuotes = false;
+            for (let i = 0; i < str.length; i++) {
+                if (str[i] === '"') inQuotes = !inQuotes;
+                if (!inQuotes && str[i] === delim) count++;
+            }
+            return count;
+        }
+        
+        const commas = countDelimiter(firstLine, ',');
+        const semicolons = countDelimiter(firstLine, ';');
+        
+        if (semicolons > commas) {
+            delimiter = ';';
+        }
+        
+        const result = [];
+        let currentRow = [];
+        let currentCell = "";
+        let inQuotes = false;
+        
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const nextChar = text[i + 1];
+            
+            if (char === '"') {
+                if (inQuotes && nextChar === '"') {
+                    currentCell += '"'; // Aspas escapadas
+                    i++;
+                } else {
+                    inQuotes = !inQuotes; // Toggle do modo aspas
+                }
+            } else if (char === delimiter && !inQuotes) {
+                currentRow.push(currentCell);
+                currentCell = "";
+            } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !inQuotes) {
+                currentRow.push(currentCell);
+                result.push(currentRow);
+                currentRow = [];
+                currentCell = "";
+                if (char === '\r') i++; // Pular o \n subsequente
+            } else {
+                currentCell += char;
+            }
+        }
+        
+        // Empurrar o restante
+        if (currentCell || currentRow.length > 0) {
+            currentRow.push(currentCell);
+            result.push(currentRow);
+        }
+        
+        // Remover última linha vazia se existir
+        if (result.length > 0 && result[result.length - 1].length === 1 && result[result.length - 1][0] === "") {
+            result.pop();
+        }
+        
+        return result;
+    }
+
+    function setupData() {
+        if (!currentData || currentData.length === 0) {
+            showStatus('A base de dados está vazia.', 'error');
+            return;
+        }
+        
+        headers = currentData[0];
+        if (currentData.length < 2) {
+            showStatus('A base de dados precisa ter pelo menos um cabeçalho e uma linha de dados.', 'error');
+            return;
+        }
+        
+        const rowCount = currentData.length - 1;
+        showStatus(`Dados carregados com sucesso! ${rowCount} linha(s) detectada(s).`, 'success');
+        
+        populateSelect();
+        controls.classList.add('active');
+        previewContainer.classList.remove('active');
+    }
+
+    function populateSelect() {
+        columnSelect.innerHTML = '';
+        let selectedIndex = 0;
+        
+        headers.forEach((header, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = header ? String(header) : `Coluna ${index + 1}`;
+            columnSelect.appendChild(option);
+            
+            // Auto-selecionar coluna sugerida (wkt, geom, geometry, shape)
+            if (header && /wkt|geom|geometry|shape/i.test(String(header))) {
+                selectedIndex = index;
+            }
+        });
+        
+        columnSelect.value = selectedIndex;
+    }
+
+    function processAndDownload() {
+        const colIndex = parseInt(columnSelect.value, 10);
+        if (isNaN(colIndex)) return;
+        
+        try {
+            // Cópia profunda da matriz de dados para evitar mutação indesejada
+            const newData = JSON.parse(JSON.stringify(currentData));
+            const previewRows = [];
+            
+            // Começar iterar em 1 (ignorar cabeçalho)
+            for (let i = 1; i < newData.length; i++) {
+                let val = newData[i][colIndex];
+                
+                if (val !== undefined && val !== null) {
+                    val = String(val);
+                    
+                    // Regex principal do processamento WKT
+                    // Suporta coordenadas negativas em X, Y e Z
+                    const newVal = val.replace(/\bZ\b|\bM\b/gi, '')
+                                      .replace(/(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g, '$1 $2')
+                                      .replace(/\s{2,}/g, ' ')
+                                      .trim();
+                    
+                    newData[i][colIndex] = newVal;
+                    
+                    // Separar preview das 5 primeiras
+                    if (previewRows.length < 5) {
+                        previewRows.push({ rowIndex: i, original: val, converted: newVal });
+                    }
+                }
+            }
+            
+            // Gerar novo Workbook SheetJS
+            const newWs = XLSX.utils.aoa_to_sheet(newData);
+            const newWb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(newWb, newWs, "Geometrias 2D");
+            
+            // Forçar o download
+            XLSX.writeFile(newWb, "geometrias_2d.xlsx");
+            
+            showStatus('Conversão concluída! O download da planilha formatada iniciará em instantes.', 'success');
+            updatePreview(previewRows);
+            
+        } catch(err) {
+            showStatus('Erro ao processar dados: ' + err.message, 'error');
+        }
+    }
+
+    function updatePreview(previewRows) {
+        previewTableBody.innerHTML = '';
+        
+        previewRows.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            const tdLine = document.createElement('td');
+            tdLine.textContent = row.rowIndex;
+            
+            const tdGeom = document.createElement('td');
+            tdGeom.textContent = row.converted;
+            tdGeom.title = `Original (3D): ${row.original}`; // Tooltip no hover
+            
+            tr.appendChild(tdLine);
+            tr.appendChild(tdGeom);
+            previewTableBody.appendChild(tr);
+        });
+        
+        previewContainer.classList.add('active');
+    }
+});
+</script>
+</body>
+</html>
